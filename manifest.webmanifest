@@ -1,0 +1,16 @@
+{
+  "name": "Magma",
+  "short_name": "Magma",
+  "description": "Tu cuaderno de gimnasio con rangos por músculo y un entrenador de pesos.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e0e10",
+  "theme_color": "#0e0e10",
+  "lang": "es",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
