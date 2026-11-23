@@ -586,7 +586,7 @@ async function remote(fn, args) {
 }
 
 /* ================= Google: inicio de sesión y hoja propia en Google Drive ================= */
-const GSCOPE = 'openid email https://www.googleapis.com/auth/drive.file';
+const GSCOPE = 'https://www.googleapis.com/auth/drive.file';
 const SCHEMA = {
   Ejercicios: ['id', 'nombre', 'grupo', 'notas', 'secundario'],
   Dias: ['id', 'orden#', 'nombre', 'semana', 'color'],
@@ -614,6 +614,7 @@ const G = {
     if (!/access_token=|error=/.test(h)) return null;
     const q = new URLSearchParams(h.slice(1));
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    if (q.get('access_token') && (q.get('scope') || GSCOPE).indexOf('drive.file') < 0) return 'noscope';
     if (q.get('access_token')) { store('magma_tok', { at: q.get('access_token'), exp: Date.now() + (+q.get('expires_in') || 3600) * 1000 }); store('magma_in', 1); return 'ok'; }
     return q.get('error') || 'error';
   },
@@ -630,7 +631,7 @@ const G = {
     return j;
   },
   async email() {
-    try { const u = await G.req('https://openidconnect.googleapis.com/v1/userinfo'); if (u.email) store('magma_email', u.email); } catch (e) {}
+    try { const u = await G.req('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)'); if (u.user && u.user.emailAddress) store('magma_email', u.user.emailAddress); } catch (e) {}
   },
   async sheet() {
     let id = load('magma_sheet');
@@ -2126,11 +2127,11 @@ function loginScreen(msg) {
 }
 
 (async function boot() {
-  if (MODE === 'g' && 'serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js'); } catch (e) {} }
+  if (MODE === 'g' && 'serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {} }
   if (MODE === 'g') {
     const r = G.fromHash();
     const v = load('magma_view'); if (v) { S.view = v; store('magma_view', null); }
-    if (r && r !== 'ok') { if (['interaction_required', 'login_required', 'consent_required', 'account_selection_required'].includes(r)) { store('magma_in', null); return loginScreen(); } return loginScreen(r === 'access_denied' ? 'Necesito tu permiso para guardar tus datos en tu Google Drive.' : 'No se pudo iniciar sesión. Vuelve a intentarlo.'); }
+    if (r && r !== 'ok') { if (['interaction_required', 'login_required', 'consent_required', 'account_selection_required'].includes(r)) { store('magma_in', null); return loginScreen(); } return loginScreen(r === 'noscope' ? 'Para guardar tus entrenos, deja marcada la casilla de Google Drive al iniciar sesión.' : r === 'access_denied' ? 'Necesito tu permiso para guardar tus datos en tu Google Drive.' : 'No se pudo iniciar sesión. Vuelve a intentarlo.'); }
     if (!G.tok()) { if (load('magma_in')) return G.login(true); return loginScreen(); }
     if (r === 'ok' && !load('magma_email')) G.email();
     const c = load('magma_data'); if (c) { try { setData(clone(c)); } catch (e) {} }
