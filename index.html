@@ -418,6 +418,8 @@ details.grp summary::-webkit-details-marker{display:none}
 .pk .acts{flex:none;margin-top:12px}
 .pk .btn[disabled]{opacity:.45}
 
+.eqline{display:block;margin:8px 0 0;padding:0;border:0;background:none;color:var(--mut);font:500 13px var(--body);text-align:left;cursor:pointer}
+.eqline u{color:var(--c);text-decoration:none;margin-left:6px;font-weight:700}
 .coach{margin:10px 0 4px;padding:12px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--kc,var(--c))}
 .coach p{margin:6px 0 0;font-size:14px;line-height:1.4}
 .coach p.xs{font-size:12px;margin-top:4px}
@@ -437,6 +439,8 @@ body.login #nav,body.login header{display:none}
 .loginbox h1{font:900 italic 56px/1 var(--display);text-transform:uppercase;margin:6px 0 0}
 .loginbox p{margin:0;color:var(--mut)}
 .gbtn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:15px 18px;border-radius:12px;border:0;background:#fff;color:#1f1f1f;font:600 16px var(--body);cursor:pointer;margin-top:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.grid3>div,.eqg>div{display:flex;flex-direction:column;justify-content:flex-end}
 @media (min-width:900px){
   body,body.has-timer{padding-bottom:40px;padding-left:96px}
   body.has-timer{padding-bottom:110px}
@@ -588,7 +592,7 @@ async function remote(fn, args) {
 /* ================= Google: inicio de sesión y hoja propia en Google Drive ================= */
 const GSCOPE = 'https://www.googleapis.com/auth/drive.file';
 const SCHEMA = {
-  Ejercicios: ['id', 'nombre', 'grupo', 'notas', 'secundario'],
+  Ejercicios: ['id', 'nombre', 'grupo', 'notas', 'secundario', 'equipo', 'salto'],
   Dias: ['id', 'orden#', 'nombre', 'semana', 'color'],
   Rutina: ['dia_id', 'orden#', 'ejercicio_id', 'descanso_seg#', 'nota'],
   Plan: ['dia_id', 'ej_orden#', 'serie#', 'tipo', 'peso#', 'reps'],
@@ -745,8 +749,8 @@ window.addEventListener('online', async () => { if (MODE === 'g' && G.dirty().le
 
 /* ================= Estado ================= */
 const S = { data: null, ix: null, view: 'hoy', w: load('fz_w3'), timer: load('fz_t'), pickDia: null, itOpen: {}, pick: null, progTab: 'rk', rkSel: null, offline: false, progEj: null, metric: 'e1rm', bodyMetric: 'peso', openSes: null, rd: null, editMed: null, libQ: '', rOpen: {}, calM: today().slice(0, 7), selDay: null, musRange: 'sem', tpl: null };
-const AJ_DEF = { nombre: '', objetivo: 3, descanso: 90, incremento: 2.5, barra: 20, discos: '25,20,15,10,5,2.5,1.25', sonido: 'si' };
-const AJ = () => { const a = Object.assign({}, AJ_DEF, (S.data && S.data.ajustes) || {}); ['objetivo', 'descanso', 'incremento', 'barra'].forEach(k => a[k] = num(a[k]) ?? AJ_DEF[k]); return a; };
+const AJ_DEF = { nombre: '', objetivo: 3, descanso: 90, incremento: 2.5, inc_maq: 5, inc_disco: 5, inc_manc: 2.5, inc_barra: 5, barra: 20, discos: '25,20,15,10,5,2.5', sonido: 'si' };
+const AJ = () => { const a = Object.assign({}, AJ_DEF, (S.data && S.data.ajustes) || {}); ['objetivo', 'descanso', 'incremento', 'barra', 'inc_maq', 'inc_disco', 'inc_manc', 'inc_barra'].forEach(k => a[k] = num(a[k]) || AJ_DEF[k]); return a; };
 
 function setData(d) { ['plan', 'rutina', 'dias', 'ejercicios', 'sesiones', 'series', 'medidas'].forEach(k => d[k] = d[k] || []); d.ajustes = d.ajustes || {}; S.data = d; index(); render(); }
 function index() {
@@ -1139,10 +1143,10 @@ function mkEx(ejId, it, planRows, skip) {
     const tipo = (pl && pl.tipo) || (pv && pv.tipo) || 'n';
     let peso, reps;
     if (tipo === 'w') {
-      peso = c.pesos[0] ? roundW(c.pesos[0] * (wi === 0 ? .5 : .7), 2.5) : (pv ? pv.peso : '');
+      peso = c.pesos[0] ? snapW(c.pesos[0] * (wi === 0 ? .5 : .7), c.inc) : (pv ? pv.peso : '');
       reps = pl && topReps(pl.reps) ? topReps(pl.reps) : (wi === 0 ? 10 : 5); wi++;
     } else if (tipo === 'd') {
-      peso = pv && pv.peso != null ? pv.peso : W0(c.pesos) ? roundW(W0(c.pesos) * .75, c.inc) : '';
+      peso = pv && pv.peso != null ? pv.peso : W0(c.pesos) ? snapW(W0(c.pesos) * .75, c.inc) : '';
       reps = pv && pv.reps != null ? pv.reps : (pl ? topReps(pl.reps) ?? '' : '');
     } else {
       peso = c.pesos[wk] != null ? c.pesos[wk] : (pv && pv.peso != null ? pv.peso : pl && pl.peso != null ? pl.peso : '');
@@ -1212,6 +1216,7 @@ function exCard(x, i) {
       <button class="mini ic" data-a="exup" data-i="${i}" aria-label="Subir ejercicio">${ICUP}</button>
       <button class="mini ic" data-a="exdel" data-i="${i}" aria-label="Quitar ejercicio">${ICX}</button></div>
     ${x.nota ? `<div class="note">${esc(x.nota)}</div>` : ''}
+    <button class="eqline" data-a="exedit" data-id="${x.ejercicio_id}">${esc(EQUIPOS[equipoOf(S.ix.ej[x.ejercicio_id])])} · sube de ${kg(stepOf(x.ejercicio_id))} en ${kg(stepOf(x.ejercicio_id))} kg <u>Cambiar</u></button>
     ${!S.w.edit && x.coach ? coachBox(x.coach) : ''}
     ${x.sets.map((s, j) => { if (s.tipo !== 'w') n++; const sub = [s.pl ? `<b>Plan</b> ${s.pl.peso ? kg(s.pl.peso) + '×' : ''}${esc(s.pl.reps)}` : '', s.pv ? `<b>Anterior</b> ${setTxt(s.pv)}` : ''].filter(Boolean).join(' · ');
       return `<div class="set ${s.done ? 'done' : ''}">
@@ -1562,19 +1567,34 @@ function repRange(ejId, planRows) {
   const pr = (planRows || []).filter(p => p.tipo !== 'w');
   return rangeOf(pr.length ? pr[0].reps : '', ejId);
 }
-function incOf(ejId) {
-  const n = exName(ejId).toLowerCase();
-  const def = /mancuern/.test(n) ? 2 : /sentadilla|prensa|peso muerto|hip thrust|zancada|búlgara|bulgara|hack|péndulo|pendulo/.test(n) ? 5 : (+AJ().incremento || 2.5);
-  const ws = [...new Set((S.ix.hist[ejId] || []).flatMap(h => h.sets).map(s => +s.peso).filter(p => p > 0))].sort((a, b) => a - b);
-  let st = Infinity; for (let i = 1; i < ws.length; i++) { const d = Math.round((ws[i] - ws[i - 1]) * 100) / 100; if (d >= 1 && d < st) st = d; }
-  return st <= 5 && st <= def * 2 ? st : def;
+const EQUIPOS = { maq: 'Máquina de placas o polea', disco: 'Máquina de discos', manc: 'Mancuernas', barra: 'Barra', corp: 'Peso corporal o lastre' };
+const EQ_ID = {prensa:'disco',hack:'disco',pendulo:'disco',hipmaq:'disco',remot:'disco',beltsquat:'disco',gemprensa:'disco',bancamanc:'manc',inclmanc:'manc',apermanc:'manc',pullover:'manc',remomanc:'manc',pressmanc:'manc',curlmanc:'manc',goblet:'manc',rumanomanc:'manc',kettleswing:'manc',arnold:'manc',laterales:'manc',frontales:'manc',pajaros:'manc',martillo:'manc',curlinc:'manc',curlconc:'manc',curlarana:'manc',patada:'manc',curlmuneca:'manc',curlmunecainv:'manc',farmer:'manc',bulgara:'manc',zancadas:'manc',zancadaspaseo:'manc',stepup:'manc',gemuni:'manc',encogimientos:'manc',remopecho:'manc',sentsumo:'manc',banca:'barra',bancainc:'barra',bancadecl:'barra',smithinc:'barra',svend:'barra',remobarra:'barra',remopendlay:'barra',pesomuerto:'barra',rackpull:'barra',buenosdias:'barra',militar:'barra',landmine:'barra',remoment:'barra',curlbarra:'barra',curlz:'barra',curlpred:'barra',curlinv:'barra',frances:'barra',cerrado:'barra',jm:'barra',sentadilla:'barra',frontal:'barra',smithsq:'barra',rumano:'barra',pmpiernas:'barra',hipthrust:'barra',hipuni:'barra',sumo:'barra',thruster:'barra',clean:'barra',trineo:'barra',triuni:'maq',trinuca:'maq',femoral:'maq',femtumbado:'maq',gemelos:'maq',remoinv:'corp',colgado:'corp',russian:'corp',remoerg:'corp',hiit:'corp',wallball:'corp',glutham:'corp'};
+function equipoOf(e) {
+  if (!e) return 'maq';
+  if (EQUIPOS[e.equipo]) return e.equipo;
+  const fijo = EQ_ID[e.id]; if (fijo) return fijo;
+  const n = String(e.nombre || '').toLowerCase();
+  if (/mancuern|kettlebell|goblet/.test(n)) return 'manc';
+  if (/smith|multipower|landmine|trineo/.test(n)) return 'barra';
+  if (/discos|hammer|iso.?lateral|plate/.test(n)) return 'disco';
+  if (/polea|máquina|maquina|contractor|pec ?deck|jalón|jalon|prensa|hack|péndulo|pendulo|abductor|aductor|cruce|face ?pull|cuerda|bayes|tumbado|sentado|extensión de cuád|extension de cuad|extensión de pierna|belt squat|remo en t|remo t|pull ?through|leñador|lenador|pallof/.test(n)) return 'maq';
+  if (/dominad|fondos|flexion|plancha|crunch|abdominal|elevación de piernas|elevacion de piernas|elevaciones de piernas|burpee|rueda|hiperext|nórdico|nordic|sissy|puente|colgad|dead ?bug|hollow|escalador|mountain|russian|bicicleta|comba|cinta|elíptica|eliptica|remoergómetro|step|salto|box jump|battle/.test(n)) return 'corp';
+  return 'barra';
 }
-function incFor(ejId, W) {
-  let inc = incOf(ejId);
-  if (W > 0 && inc > 2.5 && inc > W * .1) inc = /mancuern/i.test(exName(ejId)) ? 2 : 2.5;
-  return inc;
+/** Cuánto puede subir o bajar el peso de un ejercicio en tu gimnasio. */
+function stepOf(ejId) {
+  const e = S.ix.ej[ejId] || (S.rd ? S.rd.nuevos.find(x => x.id === ejId) : null);
+  const s = e ? num(e.salto) : null;
+  if (s && s > 0) return s;
+  const a = AJ();
+  const minDisco = Math.min(...String(a.discos).split(',').map(Number).filter(x => x > 0)) || 2.5;
+  return { maq: a.inc_maq, disco: a.inc_disco, manc: a.inc_manc, barra: a.inc_barra, corp: minDisco }[equipoOf(e)] || 2.5;
 }
-const roundW = (x, inc) => Math.max(0, Math.round(Math.round(x / inc) * inc * 2) / 2);
+const incOf = ejId => stepOf(ejId);
+const incFor = (ejId) => stepOf(ejId);
+/* Redondea a un peso que existe en tu gimnasio (múltiplo del salto) */
+const roundW = (x, inc) => { inc = +inc || 2.5; const v = Math.round(Math.round(x / inc) * inc * 100) / 100; return Math.max(0, v); };
+const snapW = (x, inc) => x > 0 ? Math.max(inc, roundW(x, inc)) : 0;
 const workSets = h => h.sets.filter(s => s.tipo !== 'w' && s.tipo !== 'd' && (s.reps || 0) > 0);
 function coach(ejId, planRows, skip) {
   planRows = planRows || [];
@@ -1589,15 +1609,15 @@ function coach(ejId, planRows, skip) {
     // 1) Si tu rutina ya tiene pesos, se respetan
     if (pw.some(p => p.peso)) {
       const pesos = [], reps = [];
-      for (let k = 0; k < nWork; k++) { const p = pw[k] || pw[pw.length - 1]; pesos.push(+p.peso || 0); reps.push(rg(k)[1]); }
+      for (let k = 0; k < nWork; k++) { const p = pw[k] || pw[pw.length - 1]; pesos.push(snapW(+p.peso || 0, stepOf(ejId))); reps.push(rg(k)[1]); }
       return { kind: 'new', lo: lo0, hi: hi0, inc: incOf(ejId), pesos, reps, lines: [], msg: 'Primera vez: empieza con los pesos de tu rutina. Si te sobran más de 3 reps en una serie, sube en la siguiente.', tip };
     }
     // 2) Estimación por tu nivel
-    const e = S.ix.ej[ejId], st = stdOf(e), bw = bodyW() || 75, inc = incOf(ejId);
+    const e = S.ix.ej[ejId], st = stdOf(e), bw = bodyW() || 75, inc = stepOf(ejId);
     if (st && st.t === 'w') {
       const mus = S.rk && S.rk.mus && e ? S.rk.mus[e.grupo] : 0;
       const lvl = mus > .1 ? mus * .85 : ({ ini: .25, int: .4, ava: .55 }[AJ().nivel] || .3);
-      const p = roundW(bw * st.v * lvl * sexF() / (1 + (hi0 + 2) / 30), inc);
+      const p = snapW(bw * st.v * lvl * (equipoOf(e) === 'manc' ? .5 : 1) * sexF() / (1 + (hi0 + 2) / 30), inc);
       if (p > 0) return { kind: 'new', lo: lo0, hi: hi0, inc, pesos: Array(nWork).fill(p), reps: Array(nWork).fill(hi0), lines: [], msg: `Primera vez: empieza con ${kg(p)} kg y haz ${hi0} reps. Es una estimación por tu nivel; si te sobran más de 3 reps, sube ${kg(inc)} kg en la siguiente serie.`, tip };
     }
     return { kind: 'new', lo: lo0, hi: hi0, inc, pesos: Array(nWork).fill(null), reps: Array(nWork).fill(hi0), lines: [], msg: `Primera vez: elige un peso con el que llegues a ${hi0} reps dejando 2 en reserva. Con eso calcularé la próxima.`, tip };
@@ -1607,13 +1627,13 @@ function coach(ejId, planRows, skip) {
   const stall = hs.length >= 4 && Math.max(...hs.slice(0, 3).map(best)) <= Math.max(...hs.slice(3, 7).map(best)) + .01;
   const pesos = [], reps = [], lines = [], kinds = [];
   for (let k = 0; k < nWork; k++) {
-    const s = L[k] || L[L.length - 1], W = +s.peso || 0, r = +s.reps || 0, [lo, hi] = rg(k), inc = incFor(ejId, W);
-    const q = P2 ? (P2[k] || P2[P2.length - 1]) : null, failedBefore = q && Math.abs((+q.peso || 0) - W) < .01 && (+q.reps || 0) < lo;
+    const s = L[k] || L[L.length - 1], inc = stepOf(ejId), W = snapW(+s.peso || 0, inc), r = +s.reps || 0, [lo, hi] = rg(k);
+    const q = P2 ? (P2[k] || P2[P2.length - 1]) : null, failedBefore = q && Math.abs(snapW(+q.peso || 0, inc) - W) < .01 && (+q.reps || 0) < lo;
     let p = W, n, kd;
     if (W === 0) { n = Math.min(hi, r + 1); kd = r >= hi ? 'up' : 'reps'; }
     else if (r >= hi + 3) { p = roundW(W + 2 * inc, inc); n = lo; kd = 'up'; }
     else if (r >= hi) { p = roundW(W + inc, inc); n = lo; kd = 'up'; }
-    else if (r < lo && (failedBefore || stall)) { p = roundW(Math.max(W - inc, W * .9), inc); n = hi; kd = 'down'; }
+    else if (r < lo && (failedBefore || stall)) { p = roundW(W * .9, inc); if (p >= W) p = W - inc; p = Math.max(p, 0); n = hi; kd = 'down'; }
     else if (r < lo) { n = lo; kd = 'keep'; }
     else { n = Math.min(hi, r + 1); kd = 'reps'; }
     pesos.push(p); reps.push(n); kinds.push(kd);
@@ -1629,7 +1649,8 @@ function coach(ejId, planRows, skip) {
   else if (kind === 'keep') msg = `Mantén los pesos y busca llegar al mínimo del rango en todas las series.`;
   else msg = `Mantén los pesos y suma una rep por serie. Cuando llegues al máximo del rango en una serie, ahí toca subir.`;
   if (W0(pesos) === 0 && ups.length) msg = 'Haces el máximo de reps: añade 2,5 kg de lastre o una variante más difícil.';
-  return { kind, lo: lo0, hi: hi0, inc: incFor(ejId, pesos[0]), pesos, reps, lines, msg, tip, stall };
+  if (ups.length && kind !== 'down' && W0(pesos) > 0) msg += ` En ${EQUIPOS[equipoOf(S.ix.ej[ejId])].toLowerCase()} subes de ${kg(stepOf(ejId))} en ${kg(stepOf(ejId))} kg.`;
+  return { kind, lo: lo0, hi: hi0, inc: stepOf(ejId), pesos, reps, lines, msg, tip, stall };
 }
 const W0 = a => Math.max(0, ...a.map(x => +x || 0));
 const COACH_LBL = { up: 'Sube peso', reps: 'Suma reps', keep: 'Mantén', down: 'Descarga', new: 'Nuevo' };
@@ -1748,7 +1769,7 @@ function exInfo(id) {
   const h = lastOf(id);
   const best = (S.ix.hist[id] || []).flatMap(x => x.sets).filter(work).reduce((b, s) => Math.max(b, e1rm(s.peso, s.reps)), 0);
   const er = S.rk.ex[id] ? rankOf(S.rk.ex[id]) : null;
-  sheet(`<h2>${esc(e.nombre)}</h2><div class="sm mut">${esc(musTxt(e))}${best ? '. Mejor 1RM estimado: ' + kg(Math.round(best * 2) / 2) + ' kg' : ''}</div>
+  sheet(`<h2>${esc(e.nombre)}</h2><div class="sm mut">${esc(musTxt(e))} · ${esc(EQUIPOS[equipoOf(e)])}, sube de ${kg(stepOf(e.id))} en ${kg(stepOf(e.id))} kg${best ? '. Mejor 1RM estimado: ' + kg(Math.round(best * 2) / 2) + ' kg' : ''}</div>
     ${er ? `<div class="pr" style="border-left-color:${er.color};margin-top:12px">${emblem(er, 30)}<span class="grow">Rango en este ejercicio</span><strong style="color:${er.color}">${rkLabel(er)}</strong></div>` : ''}
     ${cues.length ? `<div class="sec-t" style="margin-top:16px">Técnica</div><ul class="cues">${cues.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : '<p class="mut sm" style="margin-top:14px">Sin notas de técnica. Puedes añadirlas al editar.</p>'}
     ${h ? `<div class="sec-t">Última vez, ${fShort(h.fecha)}</div><p style="margin:0">${h.sets.map(setTxt).join('&ensp;')}</p>` : ''}
@@ -1761,17 +1782,19 @@ function exEdit(id) {
     <div style="margin-top:12px"><label class="flabel" for="ee_n">Nombre</label><input class="field" id="ee_n" value="${esc(e.nombre)}"></div>
     <div style="margin-top:12px"><label class="flabel" for="ee_g">Músculo principal</label><input class="field" id="ee_g" list="ee_gl" value="${esc(e.grupo)}"><datalist id="ee_gl">${grupos.map(g => `<option value="${esc(g)}">`).join('')}</datalist></div>
     <div style="margin-top:12px"><span class="flabel">Músculos secundarios (cuentan media serie)</span>${secChips(e)}</div>
+    <div style="margin-top:12px"><span class="flabel">Material</span><div class="chips wrapc" id="ee_eq">${Object.entries(EQUIPOS).map(([k, l]) => `<button type="button" class="chip ${equipoOf(e) === k ? 'on' : ''}" data-a="eqPick" data-eq="${k}">${l}</button>`).join('')}</div></div>
+    <div style="margin-top:12px"><label class="flabel" for="ee_salto">Salto de peso en tu gimnasio (kg)</label><input class="field" id="ee_salto" inputmode="decimal" value="${esc(e.salto || '')}" placeholder="Por defecto ${kg(stepOf(e.id))} kg"><div class="xs mut" style="margin-top:4px">Déjalo vacío para usar el de Ajustes según el material.</div></div>
     <div style="margin-top:12px"><label class="flabel" for="ee_t">Técnica (una indicación por línea)</label><textarea class="field" id="ee_t" style="min-height:120px">${esc(String(e.notas || '').split('|').join('\n'))}</textarea></div>
     <div class="acts">${!S.ix.hist[id] && !S.data.rutina.some(r => r.ejercicio_id === id) && S.ix.ej[id] ? '<button class="btn danger" id="ee_del">Eliminar</button>' : ''}<button class="btn ghost" data-a="close">Cancelar</button><button class="btn hot" id="ee_ok">Guardar</button></div>`);
   const del = $('#ee_del');
   if (del) del.onclick = async () => { close(); if (!await ask({ title: 'Eliminar ejercicio', text: e.nombre + ' desaparecerá de tu biblioteca.', ok: 'Eliminar', danger: true })) return; busy(true); try { setData(await api('deleteEjercicio', id)); toast('Ejercicio eliminado'); } catch (er) { toast(errMsg(er), true); } busy(false); };
   $('#ee_ok').onclick = async () => {
-    const n = { ...e, nombre: $('#ee_n').value.trim() || e.nombre, grupo: $('#ee_g').value.trim() || 'Otro', secundario: readSec(e), notas: $('#ee_t').value.split('\n').map(s => s.trim()).filter(Boolean).join('|') };
+    const n = { ...e, nombre: $('#ee_n').value.trim() || e.nombre, grupo: $('#ee_g').value.trim() || 'Otro', secundario: readSec(e), equipo: ($('#ee_eq .chip.on') || {}).dataset ? $('#ee_eq .chip.on').dataset.eq : '', salto: num($('#ee_salto').value) ? String(num($('#ee_salto').value)) : '', notas: $('#ee_t').value.split('\n').map(s => s.trim()).filter(Boolean).join('|') };
     close();
     const nv = S.rd && S.rd.nuevos.find(x => x.id === id);
     if (nv) { Object.assign(nv, n); render(); return; }
     busy(true);
-    try { setData(await api('saveEjercicio', n)); if (S.w) { S.w.ex.forEach(x => { if (x.ejercicio_id === id) x.nombre = n.nombre; }); saveW(); render(); } toast('Ejercicio guardado'); }
+    try { setData(await api('saveEjercicio', n)); if (S.w) { const st = stepOf(id); S.w.ex.forEach(x => { if (x.ejercicio_id === id) { x.nombre = n.nombre; if (x.coach) x.coach.inc = st; x.sets.forEach(s => { if (!s.done && num(s.peso)) s.peso = String(snapW(num(s.peso), st)); }); } }); saveW(); render(); } toast('Ejercicio guardado'); }
     catch (er) { toast(errMsg(er), true); }
     busy(false);
   };
@@ -1782,6 +1805,7 @@ function newExercise() {
       <div style="margin-top:12px"><label class="flabel" for="ne_n">Nombre</label><input class="field" id="ne_n" placeholder="Hip thrust"></div>
       <div style="margin-top:12px"><span class="flabel">Músculo principal</span><div class="chips wrapc" id="ne_g">${MUSCULOS.map(g => `<button type="button" class="chip" data-a="neG" data-g="${esc(g)}">${esc(g)}</button>`).join('')}</div></div>
       <div style="margin-top:12px"><span class="flabel">Músculos secundarios (opcional)</span>${secChips({ grupo: '' })}</div>
+      <div style="margin-top:12px"><span class="flabel">Material</span><div class="chips wrapc" id="ee_eq">${Object.entries(EQUIPOS).map(([k, l]) => `<button type="button" class="chip" data-a="eqPick" data-eq="${k}">${l}</button>`).join('')}</div></div>
       <div class="acts"><button class="btn ghost" id="ne_no">Cancelar</button><button class="btn hot" id="ne_ok">Crear</button></div>`);
     setTimeout(() => { const f = $('#ne_n'); if (f) f.focus(); }, 50);
     $('#ne_no').onclick = () => { close(); res(null); };
@@ -1790,7 +1814,7 @@ function newExercise() {
       if (!n) { toast('Escribe el nombre', true); return; }
       if (!g) { toast('Elige el músculo principal', true); return; }
       const sec = [...document.querySelectorAll('#ee_sec .chip.on')].map(b => b.dataset.g).filter(x => x !== g.g).join(',');
-      close(); res({ id: 'e_' + rid(), nombre: n, grupo: g.g, secundario: sec, notas: '' });
+      const eq = document.querySelector('#ee_eq .chip.on'); close(); res({ id: 'e_' + rid(), nombre: n, grupo: g.g, secundario: sec, equipo: eq ? eq.dataset.eq : '', salto: '', notas: '' });
     };
   });
 }
@@ -1851,7 +1875,13 @@ function settings() {
     <div class="stack" style="margin-top:14px">
       <div class="row between"><div><h3>Objetivo semanal</h3><div class="xs mut">Entrenos por semana para la racha</div></div><div class="stepper"><button class="mini ic" data-a="sobj" data-n="-1" aria-label="Menos">−</button><b id="s_obj">${a.objetivo}</b><button class="mini ic" data-a="sobj" data-n="1" aria-label="Más">+</button></div></div>
       <div class="grid2"><div><label class="flabel" for="s_desc">Descanso por defecto (seg)</label><input class="field" id="s_desc" inputmode="numeric" value="${a.descanso}"></div>
-      <div><label class="flabel" for="s_inc">Subida de peso sugerida (kg)</label><input class="field" id="s_inc" inputmode="decimal" value="${kg(a.incremento)}"></div></div>
+      <div></div></div>
+      <div><h3>Saltos de peso de tu gimnasio</h3><div class="xs mut">El entrenador solo te propone pesos que existen. Cada ejercicio puede tener su propio salto desde su ficha.</div></div>
+      <div class="grid2 eqg"><div><label class="flabel" for="s_imaq">Máquinas de placas y poleas</label><input class="field" id="s_imaq" inputmode="decimal" value="${kg(a.inc_maq)}"></div>
+      <div><label class="flabel" for="s_idisco">Máquinas de discos</label><input class="field" id="s_idisco" inputmode="decimal" value="${kg(a.inc_disco)}"></div>
+      <div><label class="flabel" for="s_imanc">Mancuernas</label><input class="field" id="s_imanc" inputmode="decimal" value="${kg(a.inc_manc)}"></div>
+      <div><label class="flabel" for="s_ibarra">Barra (un disco por lado)</label><input class="field" id="s_ibarra" inputmode="decimal" value="${kg(a.inc_barra)}"></div></div>
+      <div class="xs mut">Con el disco más pequeño de 2,5 kg: barra y máquinas de discos suben de 5 en 5 (2,5 por lado) y el lastre de fondos o dominadas de 2,5 en 2,5. Si una máquina de discos la cargas por un solo lado, ponle 2,5 en su ficha.</div>
       <div class="grid2"><div><label class="flabel" for="s_barra">Barra (kg)</label><input class="field" id="s_barra" inputmode="decimal" value="${kg(a.barra)}"></div>
       <div><label class="flabel" for="s_discos">Discos de tu gym (kg, decimales con punto)</label><input class="field" id="s_discos" value="${esc(a.discos)}"></div></div>
       <div class="row between"><div><h3>Sonido al acabar el descanso</h3><div class="xs mut">La vibración funciona si tu móvil lo permite</div></div><button class="toggle ${a.sonido !== 'no' ? 'on' : ''}" id="s_son" data-a="sson" aria-pressed="${a.sonido !== 'no'}" aria-label="Sonido"></button></div>
@@ -1905,7 +1935,7 @@ document.addEventListener('click', async ev => {
     case 'plates': { const x = w.ex[i]; const s = x.sets.find(s => !s.done) || x.sets[x.sets.length - 1]; toolTab = 'discos'; tools(s ? num(s.peso) : null); break; }
     case 'sobj': { const b = $('#s_obj'); b.textContent = Math.min(7, Math.max(1, +b.textContent + +el.dataset.n)); break; }
     case 'sson': el.classList.toggle('on'); el.setAttribute('aria-pressed', el.classList.contains('on')); break;
-    case 'ssave': { const aj = { objetivo: $('#s_obj').textContent, descanso: String(num($('#s_desc').value) || 90), incremento: String(num($('#s_inc').value) || 2.5), barra: String(num($('#s_barra').value) ?? 20), discos: $('#s_discos').value.split(/[,;\s]+/).map(num).filter(Boolean).join(',') || AJ_DEF.discos, sonido: $('#s_son').classList.contains('on') ? 'si' : 'no' }; close(); busy(true); try { setData(await api('saveAjustes', aj)); toast('Ajustes guardados'); } catch (e) { toast(errMsg(e), true); } busy(false); break; }
+    case 'ssave': { const aj = { objetivo: $('#s_obj').textContent, descanso: String(num($('#s_desc').value) || 90), inc_maq: String(num($('#s_imaq').value) || 5), inc_disco: String(num($('#s_idisco').value) || 5), inc_manc: String(num($('#s_imanc').value) || 2.5), inc_barra: String(num($('#s_ibarra').value) || 5), barra: String(num($('#s_barra').value) ?? 20), discos: $('#s_discos').value.split(/[,;\s]+/).map(num).filter(Boolean).join(',') || AJ_DEF.discos, sonido: $('#s_son').classList.contains('on') ? 'si' : 'no' }; close(); busy(true); try { setData(await api('saveAjustes', aj)); toast('Ajustes guardados'); } catch (e) { toast(errMsg(e), true); } busy(false); break; }
     case 'tplpick': S.tpl = id; document.querySelectorAll('[data-a="tplpick"]').forEach(b => b.classList.toggle('on', b.dataset.id === id)); break;
     case 'pchip': { const grp = el.closest('[data-grp]'); if (!grp) break; const v = el.dataset.pv; grp.dataset.val = grp.dataset.val === v && grp.dataset.grp !== 'avatar' ? '' : v; grp.querySelectorAll('[data-a="pchip"]').forEach(b => b.classList.toggle('on', b.dataset.pv === grp.dataset.val)); break; }
     case 'editprof': editProfile(); break;
@@ -1985,6 +2015,7 @@ document.addEventListener('click', async ev => {
     case 'pickex': pickEx(el.dataset.m, i); setTimeout(() => { const q = $('#pk_q'); if (q && window.innerWidth >= 900) q.focus(); }, 60); break;
     case 'pktog': { const p = S.pick; if (!p) break; const n = p.sel.indexOf(id); if (p.swapJ != null) p.sel = n >= 0 ? [] : [id]; else if (n >= 0) p.sel.splice(n, 1); else p.sel.push(id); pkSync(); break; }
     case 'secTog': el.classList.toggle('on'); break;
+    case 'eqPick': el.parentNode.querySelectorAll('.chip').forEach(b => b.classList.toggle('on', b === el)); break;
     case 'neG': document.querySelectorAll('#ne_g .chip').forEach(b => b.classList.toggle('on', b === el)); document.querySelectorAll('#ee_sec .chip').forEach(b => { const same = b.dataset.g === el.dataset.g; b.style.display = same ? 'none' : ''; if (same) b.classList.remove('on'); }); break;
     case 'pkgrp': document.querySelectorAll('[data-a="pkgrp"]').forEach(b => b.classList.toggle('on', b === el)); pkFilter(); break;
     case 'pkok': pkApply(S.pick ? S.pick.sel.slice() : []); break;
