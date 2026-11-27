@@ -451,6 +451,20 @@ body.login #nav,body.login header{display:none}
 .callegend span{display:inline-flex;align-items:center;gap:6px}
 .callegend i{width:12px;height:12px;border-radius:4px;display:inline-block}
 .seslist{border-left:4px solid var(--sc)}
+
+.ladder{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.lstep{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;border:1px solid transparent}
+.lstep b{font:800 italic 18px var(--display);text-transform:uppercase;color:var(--rc)}
+.lstep small{display:block;font-size:12px;color:var(--mut);line-height:1.3}
+.lstep .lreq{font:700 13px var(--body);white-space:nowrap;color:var(--text)}
+.lstep.cur{border-color:var(--rc);background:color-mix(in srgb,var(--rc) 12%,transparent)}
+.lstep.past{opacity:.55}
+.howto{margin:6px 0 0;padding-left:18px;font-size:14px;line-height:1.45}
+.howto li{margin:6px 0}
+.rkex .ladder div{border-top:0;font-size:inherit}
+.rkex .rkbar{display:block;padding:0;border-top:0}
+.rkex .ladder .lstep{padding:7px 8px}
+.rkex .ladder .grow{display:block;padding:0}
 @media (min-width:900px){
   body,body.has-timer{padding-bottom:40px;padding-left:96px}
   body.has-timer{padding-bottom:110px}
@@ -878,10 +892,68 @@ function rkHint(g) {
   const target = RK_T[r.i + 1], [id] = list[0], s2 = list[1] ? list[1][1] : null;
   const need = (s2 != null ? (target - .4 * s2) / .6 : target / .85) * sexF();
   const e = exObj(id), st = stdOf(e), bw = bodyW() || 75, nx = RANKS[r.i + 1][0];
-  if (st.t === 'w') return `Para ${nx}: ${e.nombre} con ${kg(Math.ceil(need * st.v * bw / (1 + 8 / 30) / 1.25) * 1.25)} kg × 8`;
+  if (st.t === 'w') { const stp = stepOf(id); return `Para ${nx}: ${e.nombre} con ${kg(Math.max(stp, Math.ceil(need * st.v * bw / (1 + 8 / 30) / stp - 1e-9) * stp))} kg × 8`; }
   if (st.l) { const reps = Math.ceil(30 * (need * st.l - 1)); if (reps <= 15) return `Para ${nx}: ${e.nombre} × ${Math.max(1, reps)} sin lastre`; return `Para ${nx}: ${e.nombre} con ${kg(Math.ceil((need * st.l * bw / (1 + 8 / 30) - bw) / 1.25) * 1.25)} kg de lastre × 8`; }
   return `Para ${nx}: ${e.nombre} × ${Math.ceil(need * st.v)}`;
 }
+
+/* ---------- Guía de rangos ---------- */
+const RK_DESC = [
+  'Aún no tienes marcas en este músculo. Registra un entreno y sales de aquí.',
+  'Empiezas a mover peso de verdad. Lo normal en los primeros meses.',
+  'Base sólida: entrenas con constancia y la técnica ya está asentada.',
+  'Por encima de la media de la gente que va al gimnasio.',
+  'Muy fuerte. Hace falta un par de años de entreno serio.',
+  'Nivel avanzado: pocos llegan aquí sin años de progresión.',
+  'Nivel competición en la mayoría de gimnasios.',
+  'Élite. Eres lava pura.'
+];
+const RK_REF = { Pecho: 'banca', Espalda: 'jalon', Hombro: 'militar', 'Bíceps': 'curlbarra', 'Tríceps': 'triceppolea', Antebrazo: 'curlmuneca', Core: 'crunchpolea', 'Cuádriceps': 'sentadilla', Femoral: 'femsentado', 'Glúteo': 'hipthrust', Gemelo: 'gemelos' };
+/* Qué hay que levantar en un ejercicio para tener la puntuación s (a 8 reps) */
+function rkReq(id, s) {
+  const e = S.ix.ej[id], st = stdOf(e), bw = bodyW() || 75, f = sexF();
+  if (!st || s <= 0) return null;
+  if (st.t === 'w') { const w = s * f * st.v * bw / (1 + 8 / 30); return { txt: `${kg(Math.max(stepOf(id), roundW(w, stepOf(id))))} kg × 8` }; }
+  if (st.l) { const reps = Math.ceil(30 * (s * f * st.l - 1)); if (reps <= 15) return { txt: `${Math.max(1, reps)} reps sin lastre` }; const l = s * f * st.l * bw / (1 + 8 / 30) - bw; return { txt: `+${kg(Math.max(2.5, roundW(l, 2.5)))} kg × 8` }; }
+  return { txt: `${Math.ceil(s * f * st.v)} reps` };
+}
+function rkRefEx(g) {
+  const mine = Object.entries(S.rk.ex).filter(([id]) => S.ix.ej[id] && S.ix.ej[id].grupo === g).sort((a, b) => b[1] - a[1]);
+  if (mine.length) return mine[0][0];
+  return S.ix.ej[RK_REF[g]] ? RK_REF[g] : null;
+}
+function rkLadder(g) {
+  const id = rkRefEx(g), cur = rankOf(g ? S.rk.mus[g] : S.rk.body);
+  return `<div class="ladder">${RANKS.map((r, i) => { const rr = { i, name: r[0], color: r[1], div: i ? r[0][0] + (r[0] === 'Platino' ? 't' : '') : '' }; const req = g && id && i > 0 ? rkReq(id, RK_T[i]) : null;
+    return `<div class="lstep ${i === cur.i ? 'cur' : ''} ${i < cur.i ? 'past' : ''}" style="--rc:${r[1]}">${emblem(rr, 30)}<div class="grow"><b>${r[0]}</b><small>${i === 0 ? 'Desde 0 puntos' : `Desde ${Math.round(RK_T[i] * 100)} puntos`}${i > 0 && i < RANKS.length - 1 ? ' · III, II y I' : ''}</small></div>${req ? `<span class="lreq">${req.txt}</span>` : i === cur.i ? '<span class="lreq">Aquí estás</span>' : ''}</div>`; }).join('')}</div>
+  ${g && id ? `<p class="xs mut" style="margin:8px 2px 0">Pesos para conseguir cada rango con <b>${esc(exName(id))}</b>${S.rk.ex[id] ? ', tu mejor ejercicio de este músculo' : ''}, haciendo 8 reps y con tu peso corporal (${kg(bodyW() || 75)} kg). Con otras reps vale cualquier marca equivalente.</p>` : ''}`;
+}
+function rkGuide() {
+  const br = rankOf(S.rk.body);
+  sheet(`<h2>Cómo funcionan los rangos</h2>
+    <p class="sm" style="margin:10px 0 0">Cada músculo tiene su rango según lo fuerte que eres <b>en relación a tu peso corporal</b>. El rango del cuerpo completo es la media de los ${RK_GROUPS.length} músculos.</p>
+    <div class="sec-t" style="margin-top:16px">Los 8 rangos</div>
+    <div class="ladder">${RANKS.map((r, i) => { const rr = { i, name: r[0], color: r[1], div: i ? r[0][0] + (r[0] === 'Platino' ? 't' : '') : '' };
+      return `<div class="lstep ${i === br.i ? 'cur' : ''}" style="--rc:${r[1]}">${emblem(rr, 34)}<div class="grow"><b>${r[0]}</b><small>${esc(RK_DESC[i])}</small></div><span class="lreq">${i ? Math.round(RK_T[i] * 100) + ' pts' : '0 pts'}</span></div>`; }).join('')}</div>
+    <p class="xs mut" style="margin:8px 2px 0">Del Hierro al Diamante cada rango tiene tres divisiones: empiezas en III, pasas a II y llegas a I antes de subir al siguiente. Magma no tiene divisiones: es el máximo.</p>
+    <div class="sec-t" style="margin-top:16px">Cómo se calcula</div>
+    <ul class="howto">
+      <li><b>Cada ejercicio</b> tiene una marca de referencia. Tu puntuación es tu mejor 1RM estimado (peso × reps) dividido entre tu peso corporal y esa referencia. 100 puntos es nivel muy avanzado.</li>
+      <li><b>Cada músculo</b> combina sus dos mejores ejercicios (60 % el mejor y 40 % el segundo). Con un solo ejercicio cuenta un 85 %, así que te conviene hacer al menos dos por músculo.</li>
+      <li><b>El cuerpo completo</b> es la media de los ${RK_GROUPS.length} músculos: un músculo sin entrenar cuenta como 0 y te baja la media.</li>
+      <li><b>Cuentan</b> máquinas, poleas, mancuernas, barra y peso corporal. Los calentamientos no cuentan. Si en tu perfil pones Mujer, las referencias se ajustan.</li>
+    </ul>
+    <div class="sec-t" style="margin-top:16px">Cómo subir</div>
+    <ul class="howto">
+      <li>Sigue al entrenador: te dice qué peso y cuántas reps tocan para progresar dentro de tu rutina.</li>
+      <li>Entrena todos los músculos: es lo que más sube el rango del cuerpo.</li>
+      <li>Haz al menos dos ejercicios por músculo.</li>
+      <li>Apunta tu peso corporal en Progreso, Cuerpo: sin él uso 75 kg y los rangos pueden salir desajustados.</li>
+      <li>Toca un músculo en el mapa para ver cuánto peso necesitas para cada rango.</li>
+    </ul>
+    <div class="acts"><button class="btn hot" data-a="close">Entendido</button></div>`);
+}
+
 function bodyMap(mus, sel) {
   const col = g => (mus[g] || 0) > 0 ? rankOf(mus[g]).color : '#2c2c31';
   const E = (g, cx, cy, rx, ry, rot) => [[cx, rot || 0], [200 - cx, -(rot || 0)]].map(([x, r]) => `<ellipse class="m ${sel === g ? 'sel' : ''}" data-a="rksel" data-g="${g}" cx="${x}" cy="${cy}" rx="${rx}" ry="${ry}"${r ? ` transform="rotate(${r} ${x} ${cy})"` : ''} fill="${col(g)}"><title>${g}</title></ellipse>`).join('');
@@ -902,14 +974,20 @@ function bodyMap(mus, sel) {
 function vRangos() {
   const R = S.rk, br = rankOf(R.body), bw = bodyW();
   return `<div class="glass pad rankhero" style="--rc:${br.color}">${emblem(br, 84)}<div class="grow"><div class="xs mut">Rango del cuerpo completo</div><h1>${rkLabel(br)}</h1>
-    <div class="rkbar"><i style="width:${Math.round(br.p * 100)}%"></i></div><div class="xs mut" style="margin-top:6px">${br.pts} puntos${br.next ? `. Siguiente rango: ${br.next}` : ''}</div></div></div>
+    <div class="rkbar"><i style="width:${Math.round(br.p * 100)}%"></i></div><div class="xs mut" style="margin-top:6px">${br.pts} puntos${br.next ? `. Te faltan ${Math.max(1, Math.round(RK_T[br.i + 1] * 100) - br.pts)} para ${br.next}` : ''}</div></div></div>
+  <button class="btn ghost block" style="margin-top:10px" data-a="rkguide">Ver todos los rangos y cómo subir</button>
   ${bw ? '' : '<p class="hint">Apunta tu peso en Progreso, Cuerpo: los rangos se calculan con tu peso corporal. Mientras tanto uso 75 kg.</p>'}
   <div class="glass pad" style="margin-top:12px">${bodyMap(R.mus, S.rkSel)}<p class="xs mut" style="margin:8px 0 0;text-align:center">Toca un músculo para ver sus ejercicios.</p></div>
   <div class="sec-t">Músculos</div>
   <div class="glass pad">${RK_GROUPS.map(g => { const r = rankOf(R.mus[g]), open = S.rkSel === g;
     const exs = Object.entries(R.ex).filter(([id]) => S.ix.ej[id].grupo === g).sort((a, b) => b[1] - a[1]);
     return `<button class="rkrow" data-a="rksel" data-g="${g}" style="--rc:${r.color}">${emblem(r, 36)}<div><b>${esc(g)}</b><small>${R.mus[g] > 0 ? rkLabel(r) : 'Sin rango'}${open ? '' : '. ' + esc(rkHint(g))}</small></div><span class="pts">${r.pts}</span></button>
-    ${open ? `<div class="rkex"><p class="sm" style="margin:0 0 6px;color:var(--c)">${esc(rkHint(g))}</p>${exs.map(([id, s]) => { const er = rankOf(s); return `<div><span>${esc(exName(id))}</span><span style="color:${er.color};font-weight:700">${rkLabel(er)}</span></div>`; }).join('') || '<div class="mut">Aún no has registrado ejercicios de este músculo.</div>'}</div>` : ''}`; }).join('')}</div>
+    ${open ? `<div class="rkex"><p class="sm" style="margin:0 0 6px;color:var(--c)">${esc(rkHint(g))}</p>
+      ${R.mus[g] > 0 && r.next ? `<div class="rkbar" style="--rc:${r.color};margin:4px 0 2px"><i style="width:${Math.round(r.p * 100)}%"></i></div><p class="xs mut" style="margin:0 0 8px">${r.pts} puntos. Te faltan ${Math.max(1, Math.round(RK_T[r.i + 1] * 100) - r.pts)} para ${r.next}.</p>` : ''}
+      <div class="xs mut" style="margin:6px 0 2px;text-transform:uppercase;letter-spacing:.04em">Tus ejercicios</div>
+      ${exs.map(([id, s]) => { const er = rankOf(s), nx = er.next ? rkReq(id, RK_T[er.i + 1]) : null; return `<div><span>${esc(exName(id))}${nx ? `<small class="mut" style="display:block">Para ${er.next}: ${nx.txt}</small>` : ''}</span><span style="color:${er.color};font-weight:700">${rkLabel(er)}</span></div>`; }).join('') || '<div class="mut">Aún no has registrado ejercicios de este músculo.</div>'}
+      <div class="xs mut" style="margin:12px 0 4px;text-transform:uppercase;letter-spacing:.04em">Escalera de ${esc(g)}</div>
+      ${rkLadder(g)}</div>` : ''}`; }).join('')}</div>
   <p class="xs mut" style="margin:12px 2px">Cada ejercicio, de máquina o de peso libre, tiene su referencia: su rango sale de tu mejor 1RM estimado dividido por tu peso corporal. El rango de un músculo combina sus dos mejores ejercicios, y el del cuerpo completo es la media de los ${RK_GROUPS.length} músculos, así que para subirlo hay que entrenar todo el cuerpo. Los calentamientos no cuentan.</p>`;
 }
 
@@ -1993,6 +2071,7 @@ document.addEventListener('click', async ev => {
     case 'pastday': nuevoSheet(el.dataset.f); break;
     case 'neStart': { const f = ($('#ne_f') || {}).value || today(); close(); if (S.w && !await ask({ title: 'Hay una sesión abierta', text: 'Se descartará la sesión que tienes a medias.', ok: 'Continuar', danger: true })) break; startWorkout(id || null, /^\d{4}-\d{2}-\d{2}$/.test(f) ? f : today()); break; }
     case 'gorank': S.view = 'progreso'; S.progTab = 'rk'; render(); window.scrollTo(0, 0); break;
+    case 'rkguide': rkGuide(); break;
     case 'rksel': { const g = el.dataset.g; S.rkSel = S.rkSel === g ? null : g; render(); break; }
     case 'glogin': G.login(false); break;
     case 'glogout': if (await ask({ title: 'Cerrar sesión', text: 'Este móvil dejará de mostrar tus datos. Siguen guardados en tu Google Drive y vuelven al iniciar sesión.', ok: 'Cerrar sesión', danger: true })) { ['magma_tok', 'magma_sheet', 'magma_data', 'magma_dirty', 'magma_in', 'magma_email', 'fz_w3', 'fz_t'].forEach(k => store(k, null)); location.reload(); } break;
