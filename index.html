@@ -441,6 +441,16 @@ body.login #nav,body.login header{display:none}
 .gbtn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:15px 18px;border-radius:12px;border:0;background:#fff;color:#1f1f1f;font:600 16px var(--body);cursor:pointer;margin-top:10px}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .grid3>div,.eqg>div{display:flex;flex-direction:column;justify-content:flex-end}
+
+.set .drops{grid-column:2/-1;display:flex;flex-direction:column;gap:6px;margin:2px 0 4px}
+.set .drop{display:grid;grid-template-columns:34px 1fr 14px 1fr 40px;align-items:center;gap:6px}
+.set .drop input{height:40px;font-size:17px}
+.set .dlab{font:800 italic 14px var(--display);color:#b48cff;text-align:center}
+.set .dadd{align-self:flex-start;color:#b48cff;border-color:rgba(180,140,255,.4)}
+.callegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:13px;color:var(--mut)}
+.callegend span{display:inline-flex;align-items:center;gap:6px}
+.callegend i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.seslist{border-left:4px solid var(--sc)}
 @media (min-width:900px){
   body,body.has-timer{padding-bottom:40px;padding-left:96px}
   body.has-timer{padding-bottom:110px}
@@ -523,7 +533,9 @@ const TNAME = { n: 'Normal', w: 'Calentamiento', d: 'Drop set', f: 'Al fallo' };
 const TLET = { w: 'C', d: 'D', f: 'F' };
 const nextTipo = t => TIPOS[(TIPOS.indexOf(t || 'n') + 1) % TIPOS.length];
 const tyLabel = (t, n) => TLET[t] || String(n);
-const setTxt = s => (s.peso ? kg(s.peso) + '×' : '') + (s.reps ?? '') + (TLET[s.tipo] ? ' <span class="tl t-' + s.tipo + '">' + TLET[s.tipo] + '</span>' : '');
+const dropsOf = s => Array.isArray(s && s.drops) ? s.drops : String((s && s.drops) || '').split(';').map(x => { const m = x.split('x'); return { peso: num(m[0]) || 0, reps: num(m[1]) || 0 }; }).filter(d => d.reps || d.peso);
+const dropsStr = a => (a || []).map(d => ({ peso: num(d.peso) || 0, reps: num(d.reps) || 0 })).filter(d => d.reps).map(d => d.peso + 'x' + d.reps).join(';');
+const setTxt = s => (s.peso ? kg(s.peso) + '×' : '') + (s.reps ?? '') + (s.tipo === 'd' ? dropsOf(s).map(d => ' ↘ ' + (d.peso ? kg(d.peso) + '×' : '') + d.reps).join('') : '') + (TLET[s.tipo] ? ' <span class="tl t-' + s.tipo + '">' + TLET[s.tipo] + '</span>' : '');
 const WD = [[1, 'L'], [2, 'M'], [3, 'X'], [4, 'J'], [5, 'V'], [6, 'S'], [0, 'D']];
 const WDN = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const PALETA = ['#ff6b1a', '#2b6bff', '#19d27a', '#ff3d7f', '#8b5cff', '#ffcf3a', '#00c2d1', '#e9e9e4'];
@@ -597,7 +609,7 @@ const SCHEMA = {
   Rutina: ['dia_id', 'orden#', 'ejercicio_id', 'descanso_seg#', 'nota'],
   Plan: ['dia_id', 'ej_orden#', 'serie#', 'tipo', 'peso#', 'reps'],
   Sesiones: ['id', 'fecha', 'dia_id', 'dia_nombre', 'inicio', 'fin', 'duracion_min#', 'notas'],
-  Series: ['sesion_id', 'fecha', 'ejercicio_id', 'ejercicio', 'serie#', 'tipo', 'peso#', 'reps#'],
+  Series: ['sesion_id', 'fecha', 'ejercicio_id', 'ejercicio', 'serie#', 'tipo', 'peso#', 'reps#', 'drops'],
   Medidas: ['id', 'fecha', 'peso#', 'grasa#', 'cintura#', 'pecho#', 'brazo#', 'muslo#', 'notas'],
   Ajustes: ['clave', 'valor']
 };
@@ -784,7 +796,7 @@ const diaDeSemana = wd => dias().find(d => semanaOf(d).includes(wd));
 const todayDia = () => diaDeSemana(new Date().getDay());
 function nextScheduled() { const now = new Date(); for (let k = 1; k <= 7; k++) { const wd = (now.getDay() + k) % 7; const d = diaDeSemana(wd); if (d) return { d, wd }; } return null; }
 function suggestDia() { const t = todayDia(); if (t) return t; const ns = nextScheduled(); if (ns) return ns.d; const ds = dias(); const last = S.ix.sesiones[0]; if (!last) return ds[0]; const i = ds.findIndex(d => d.id === last.dia_id); return ds[(i + 1) % ds.length]; }
-const sesVol = id => (S.ix.bySes[id] || []).filter(work).reduce((a, s) => a + (s.peso || 0) * (s.reps || 0), 0);
+const sesVol = id => (S.ix.bySes[id] || []).filter(work).reduce((a, s) => a + (s.peso || 0) * (s.reps || 0) + (s.tipo === 'd' ? dropsOf(s).reduce((b, d) => b + d.peso * d.reps, 0) : 0), 0);
 const sesionesEntre = (a, b) => S.ix.sesiones.filter(s => s.fecha >= a && s.fecha <= b);
 function racha() {
   const obj = AJ().objetivo; let n = 0; let w = weekStart(today());
@@ -1152,7 +1164,8 @@ function mkEx(ejId, it, planRows, skip) {
       peso = c.pesos[wk] != null ? c.pesos[wk] : (pv && pv.peso != null ? pv.peso : pl && pl.peso != null ? pl.peso : '');
       reps = c.reps[wk] ?? (pv ? pv.reps : ''); wk++;
     }
-    sets.push({ tipo, peso: String(peso ?? ''), reps: String(reps ?? ''), done: false, pv: pv ? { tipo: pv.tipo, peso: pv.peso, reps: pv.reps } : null, pl: pl ? { tipo: pl.tipo, peso: pl.peso, reps: pl.reps } : null });
+    const drops = tipo === 'd' ? (pv && pv.tipo === 'd' && dropsOf(pv).length ? dropsOf(pv).map(d => ({ peso: String(d.peso || ''), reps: String(d.reps || '') })) : [{ peso: num(peso) ? String(snapW(num(peso) * .75, c.inc)) : '', reps: '' }]) : [];
+    sets.push({ tipo, peso: String(peso ?? ''), reps: String(reps ?? ''), drops, done: false, pv: pv ? { tipo: pv.tipo, peso: pv.peso, reps: pv.reps, drops: pv.drops } : null, pl: pl ? { tipo: pl.tipo, peso: pl.peso, reps: pl.reps } : null });
   }
   return { ejercicio_id: ejId, nombre: exName(ejId), descanso: (it && +it.descanso_seg) || AJ().descanso, nota: (it && it.nota) || '', prevF: prev ? prev.fecha : null, coach: c, sets };
 }
@@ -1169,7 +1182,7 @@ function editSession(id) {
   rows.forEach(s => { if (!g[s.ejercicio_id]) { g[s.ejercicio_id] = []; order.push(s.ejercicio_id); } g[s.ejercicio_id].push(s); });
   const rut = itemsDe(se.dia_id);
   S.w = { id: se.id, dia_id: se.dia_id, dia_nombre: se.dia_nombre, libre: !se.dia_id, fecha: se.fecha, start: Date.now(), dur: se.duracion_min != null ? String(se.duracion_min) : '', past: true, inicio: se.inicio, fin: se.fin, notas: se.notas || '', edit: true, cur: 0, mode: 'lista',
-    ex: order.map(eid => { const it = rut.find(r => r.ejercicio_id === eid); const x = mkEx(eid, it, [], id); x.sets = g[eid].sort((a, b) => a.serie - b.serie).map((s, i) => ({ tipo: s.tipo || 'n', peso: String(s.peso ?? ''), reps: String(s.reps ?? ''), done: true, pv: x.sets[i] ? x.sets[i].pv : null, pl: null })); return x; }) };
+    ex: order.map(eid => { const it = rut.find(r => r.ejercicio_id === eid); const x = mkEx(eid, it, [], id); x.sets = g[eid].sort((a, b) => a.serie - b.serie).map((s, i) => ({ tipo: s.tipo || 'n', peso: String(s.peso ?? ''), reps: String(s.reps ?? ''), drops: dropsOf(s).map(d => ({ peso: String(d.peso || ''), reps: String(d.reps || '') })), done: true, pv: x.sets[i] ? x.sets[i].pv : null, pl: null })); return x; }) };
   saveW(); S.view = 'hoy'; render(); window.scrollTo(0, 0);
 }
 const saveW = () => store('fz_w3', S.w);
@@ -1226,13 +1239,19 @@ function exCard(x, i) {
       <input inputmode="numeric" data-f="reps" data-i="${i}" data-j="${j}" value="${esc(s.reps)}" placeholder="reps" aria-label="Repeticiones serie ${j + 1}">
       <button class="chk" data-a="chk" data-i="${i}" data-j="${j}" aria-label="Marcar serie ${j + 1}"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
       ${sub ? `<div class="sub">${sub}</div>` : ''}
+      ${s.tipo === 'd' ? `<div class="drops">${(s.drops || []).map((d, k) => `<div class="drop"><span class="dlab" aria-hidden="true">↘ ${k + 1}</span>
+        <input inputmode="decimal" data-f="dpeso" data-i="${i}" data-j="${j}" data-k="${k}" value="${esc(d.peso)}" placeholder="kg" aria-label="Peso de la bajada ${k + 1}">
+        <span class="x">×</span>
+        <input inputmode="numeric" data-f="dreps" data-i="${i}" data-j="${j}" data-k="${k}" value="${esc(d.reps)}" placeholder="reps" aria-label="Reps de la bajada ${k + 1}">
+        <button class="mini ic" data-a="ddel" data-i="${i}" data-j="${j}" data-k="${k}" aria-label="Quitar bajada ${k + 1}">${ICX}</button></div>`).join('')}
+        <button class="mini dadd" data-a="dadd" data-i="${i}" data-j="${j}">+ Bajada</button></div>` : ''}
     </div>`; }).join('')}
     <div class="ex-tools"><button class="mini" data-a="addset" data-i="${i}">Añadir serie</button>${x.sets.length > 1 ? `<button class="mini" data-a="delset" data-i="${i}">Quitar serie</button>` : ''}<button class="mini" data-a="plates" data-i="${i}">Calcular discos</button></div>
   </div>`;
 }
 async function finish() {
   const w = S.w, series = [];
-  w.ex.forEach(x => { let n = 0; x.sets.forEach(s => { const r = num(s.reps); if (s.done && r) series.push({ ejercicio_id: x.ejercicio_id, ejercicio: x.nombre, serie: ++n, tipo: s.tipo || 'n', peso: num(s.peso) || 0, reps: r }); }); });
+  w.ex.forEach(x => { let n = 0; x.sets.forEach(s => { const r = num(s.reps); if (s.done && r) series.push({ ejercicio_id: x.ejercicio_id, ejercicio: x.nombre, serie: ++n, tipo: s.tipo || 'n', peso: num(s.peso) || 0, reps: r, drops: s.tipo === 'd' ? dropsStr(s.drops) : '' }); }); });
   if (!series.length) { if (await ask({ title: 'Nada que guardar', text: 'No has marcado ninguna serie con ✓. ¿Descartas la sesión?', ok: 'Descartar', danger: true })) dropW(); return; }
   const pend = w.ex.reduce((a, x) => a + x.sets.filter(s => !s.done).length, 0);
   if (!await ask({ title: w.edit ? 'Guardar cambios' : 'Terminar entreno', text: pend ? `Hay ${pend} series sin marcar y no se guardarán.` : 'Se guardará en tu Google Sheet.', ok: 'Guardar' })) return;
@@ -1266,7 +1285,7 @@ let lastSaved = null;
 function summary(p, prs, ups) {
   ups = ups || [];
   lastSaved = p;
-  const vol = p.series.filter(work).reduce((a, s) => a + s.peso * s.reps, 0);
+  const vol = p.series.filter(work).reduce((a, s) => a + s.peso * s.reps + (s.tipo === 'd' ? dropsOf(s).reduce((b, d) => b + d.peso * d.reps, 0) : 0), 0);
   const inRut = itemsDe(p.dia_id).some(it => p.series.some(s => s.ejercicio_id === it.ejercicio_id));
   const ws = weekStart(today()), n = sesionesEntre(ws, addDays(ws, 6)).length, obj = AJ().objetivo;
   sheet(`<h2>Entreno guardado</h2><p class="sm mut" style="margin:0">${n >= obj ? 'Objetivo de la semana cumplido.' : `Llevas ${n} de ${obj} esta semana.`}</p>
@@ -1327,8 +1346,10 @@ function vHistorial() {
   const mes = sesionesEntre(first, lastD);
   const t = today();
   let cells = '';
-  for (let i = 0; i < 42; i++) { const f = addDays(start, i); if (i >= 35 && dt(f).getMonth() !== mo) break; const n = (S.ix.byDay[f] || []).length;
-    cells += `<button class="${dt(f).getMonth() !== mo ? 'out' : ''} ${n ? 'has' : ''} ${f === t ? 'today' : ''} ${f === S.selDay ? 'sel' : ''} ${f > t ? 'fut' : ''}" data-a="selday" data-f="${f}" aria-label="${fDate(f)}${n ? ', entrenaste' : ''}">${dt(f).getDate()}</button>`; }
+  for (let i = 0; i < 42; i++) { const f = addDays(start, i); if (i >= 35 && dt(f).getMonth() !== mo) break; const ds = S.ix.byDay[f] || [], n = ds.length;
+    const cs = [...new Set(ds.map(sesColor))], bg = !n ? '' : cs.length === 1 ? cs[0] : `linear-gradient(135deg, ${cs.map((c, k) => `${c} ${k / cs.length * 100}% ${(k + 1) / cs.length * 100}%`).join(', ')})`;
+    cells += `<button class="${dt(f).getMonth() !== mo ? 'out' : ''} ${n ? 'has' : ''} ${f === t ? 'today' : ''} ${f === S.selDay ? 'sel' : ''} ${f > t ? 'fut' : ''}" ${n ? `style="background:${bg};color:${inkFor(cs[0])}"` : ''} data-a="selday" data-f="${f}" aria-label="${fDate(f)}${n ? ', entrenaste ' + ds.map(s => s.dia_nombre).join(' y ') : ''}">${dt(f).getDate()}</button>`; }
+  const usados = []; mes.forEach(s => { const k = s.dia_id || '_libre'; if (!usados.some(u => u.k === k)) usados.push({ k, c: sesColor(s), n: s.dia_id ? ((S.data.dias.find(d => d.id === s.dia_id) || {}).nombre || s.dia_nombre) : 'Entreno libre' }); });
   const list = S.selDay ? (S.ix.byDay[S.selDay] || []) : mes;
   const mins = mes.reduce((a, s) => a + (s.duracion_min || 0), 0);
   return `<div class="narrow">
@@ -1340,14 +1361,20 @@ function vHistorial() {
   <div class="glass pad" style="margin-top:12px">
     <div class="calhead"><button class="icon-btn" data-a="calm" data-n="-1" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button><h3>${cap(m0.toLocaleDateString('es-ES', { month: 'long' }))} ${y}</h3><button class="icon-btn" data-a="calm" data-n="1" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button></div>
     <div class="cal">${WD.map(w => `<span class="dw">${w[1]}</span>`).join('')}${cells}</div>
+    ${usados.length ? `<div class="callegend">${usados.map(u => `<span><i style="background:${u.c}"></i>${esc(u.n)}</span>`).join('')}</div>` : ''}
   </div>
   <div class="sec-t">${S.selDay ? fDate(S.selDay) : 'Sesiones de ' + m0.toLocaleDateString('es-ES', { month: 'long' })}${S.selDay ? '<button class="lnk" data-a="selday" data-f="">Ver todo el mes</button>' : ''}</div>
   ${list.map(sesItem).join('') || `<div class="glass pad empty"><p class="mut" style="margin:0">${S.selDay ? 'Ese día no entrenaste.' : 'Sin entrenos este mes.'}</p>${S.selDay && S.selDay <= t && S.data.dias.length ? `<button class="btn ghost sm" style="margin-top:12px" data-a="pastday" data-f="${S.selDay}">Anotar una sesión ese día</button>` : ''}</div>`}</div>`;
 }
+function sesColor(s) {
+  const d = s && s.dia_id ? S.data.dias.find(x => x.id === s.dia_id) : null;
+  if (d) return diaColor(d);
+  return '#8a8a93';
+}
 function sesItem(s) {
   const ss = S.ix.bySes[s.id] || [], open = S.openSes === s.id || (S.selDay && (S.ix.byDay[S.selDay] || []).length === 1);
   const g = {}; ss.forEach(x => (g[x.ejercicio] = g[x.ejercicio] || []).push(x));
-  return `<div class="glass list-i tap" data-a="ses" data-id="${s.id}">
+  return `<div class="glass list-i tap seslist" style="--sc:${sesColor(s)}" data-a="ses" data-id="${s.id}">
     <div class="row between"><div><h3>${esc(s.dia_nombre)}</h3><div class="sm mut">${fDate(s.fecha)}${s.duracion_min ? ', ' + s.duracion_min + ' min' : ''}, ${ss.length} series</div></div><span class="badge">${big(sesVol(s.id))} kg</span></div>
     ${open ? `<div class="det">${Object.entries(g).map(([n, a]) => `<p><b>${esc(n)}</b><br><span class="mut">${a.sort((x, y) => x.serie - y.serie).map(setTxt).join('&ensp;')}</span></p>`).join('')}${s.notas ? `<p class="mut">“${esc(s.notas)}”</p>` : ''}
     <div class="btn-row"><button class="btn ghost sm" data-a="editses" data-id="${s.id}">Editar sesión</button><button class="btn danger sm" data-a="delses" data-id="${s.id}">Borrar</button></div></div>` : ''}
@@ -1975,8 +2002,10 @@ document.addEventListener('click', async ev => {
     case 'prevex': if (w.cur > 0) { w.cur--; saveW(); render(); window.scrollTo(0, 0); } break;
     case 'nextex': if (w.cur < w.ex.length - 1) { w.cur++; saveW(); render(); window.scrollTo(0, 0); } break;
     case 'chk': { const s = w.ex[i].sets[j]; s.done = !s.done; if (s.done && !w.past) { unlockAudio(); startTimer(w.ex[i].descanso); } saveW(); render(); if (s.done && w.ex[i].sets.every(x => x.done) && i < w.ex.length - 1 && w.mode !== 'lista') toast('Ejercicio completado'); break; }
-    case 'ty': { const s = w.ex[i].sets[j]; s.tipo = nextTipo(s.tipo); saveW(); render(); break; }
-    case 'addset': { const x = w.ex[i], l = x.sets[x.sets.length - 1] || {}; x.sets.push({ tipo: l.tipo === 'w' ? 'n' : (l.tipo || 'n'), peso: l.peso || '', reps: l.reps || '', done: false, pv: null, pl: null }); saveW(); render(); break; }
+    case 'ty': { const s = w.ex[i].sets[j]; s.tipo = nextTipo(s.tipo); if (s.tipo === 'd' && !(s.drops && s.drops.length)) s.drops = [{ peso: num(s.peso) ? String(snapW(num(s.peso) * .75, stepOf(w.ex[i].ejercicio_id))) : '', reps: '' }]; saveW(); render(); break; }
+    case 'dadd': { const s = w.ex[i].sets[j]; s.drops = s.drops || []; const l = s.drops[s.drops.length - 1], base = num(l ? l.peso : s.peso); s.drops.push({ peso: base ? String(snapW(base * .75, stepOf(w.ex[i].ejercicio_id))) : '', reps: '' }); saveW(); render(); break; }
+    case 'ddel': { const s = w.ex[i].sets[j]; (s.drops || []).splice(+el.dataset.k, 1); saveW(); render(); break; }
+    case 'addset': { const x = w.ex[i], l = x.sets[x.sets.length - 1] || {}; x.sets.push({ tipo: l.tipo === 'w' ? 'n' : (l.tipo || 'n'), peso: l.peso || '', reps: l.reps || '', drops: l.tipo === 'd' ? (l.drops || []).map(d => ({ ...d })) : [], done: false, pv: null, pl: null }); saveW(); render(); break; }
     case 'delset': w.ex[i].sets.pop(); saveW(); render(); break;
     case 'exup': if (i > 0) { [w.ex[i - 1], w.ex[i]] = [w.ex[i], w.ex[i - 1]]; if (w.cur === i) w.cur = i - 1; saveW(); render(); } break;
     case 'exdel': if (await ask({ title: 'Quitar ejercicio', text: w.ex[i].nombre + ' saldrá de esta sesión.', ok: 'Quitar', danger: true })) { w.ex.splice(i, 1); if (w.cur >= w.ex.length) w.cur = Math.max(0, w.ex.length - 1); saveW(); render(); } break;
@@ -2034,7 +2063,7 @@ document.addEventListener('click', async ev => {
 });
 document.addEventListener('input', ev => {
   const t = ev.target;
-  if (t.dataset.f && S.w) { const f = t.dataset.f; if (f === 'notas' || f === 'dur' || f === 'fecha' || f === 'dia_nombre') { S.w[f] = t.value; if (f === 'fecha') S.w.past = S.w.edit || t.value !== today(); } else S.w.ex[+t.dataset.i].sets[+t.dataset.j][f] = t.value; saveW(); }
+  if (t.dataset.f && S.w) { const f = t.dataset.f; if (f === 'notas' || f === 'dur' || f === 'fecha' || f === 'dia_nombre') { S.w[f] = t.value; if (f === 'fecha') S.w.past = S.w.edit || t.value !== today(); } else if (f === 'dpeso' || f === 'dreps') { const s = S.w.ex[+t.dataset.i].sets[+t.dataset.j]; s.drops = s.drops || []; const d = s.drops[+t.dataset.k]; if (d) d[f === 'dpeso' ? 'peso' : 'reps'] = t.value; } else S.w.ex[+t.dataset.i].sets[+t.dataset.j][f] = t.value; saveW(); }
   if (t.dataset.rd && S.rd) {
     const d = S.rd.dias[+t.dataset.i], f = t.dataset.rd;
     if (f === 'nombre') d.nombre = t.value;
