@@ -833,16 +833,16 @@ const RANKS = [['Novato', '#4a4a52'], ['Hierro', '#8d939c'], ['Bronce', '#c98244
 const RK_T = [0, .15, .3, .45, .6, .75, .9, 1.05];
 const RK_GROUPS = ['Pecho', 'Espalda', 'Hombro', 'Bíceps', 'Tríceps', 'Antebrazo', 'Core', 'Cuádriceps', 'Femoral', 'Glúteo', 'Gemelo'];
 /* 1RM estimado ÷ peso corporal que corresponde al rango Magma en cada ejercicio */
-const STD = { banca: 1.75, bancainc: 1.5, bancadecl: 1.8, smithinc: 1.5, bancamanc: .65, inclmanc: .55, declmaq: 1.8, pressmaq: 1.6, aperturas: .6, apermanc: .4, cruces: .6, cruceslow: .5, contractor: 1.3, pullover: .5, svend: .25,
-  jalon: 1.25, jalonsup: 1.25, jalonuni: .6, jalonbrazos: .7, remobarra: 1.6, remopendlay: 1.5, remomanc: .75, remot: 1.6, remopecho: 1.5, remopolea: 1.3, remomaq: 1.4, pesomuerto: 2.8, rackpull: 3.2, hiperext: .8, buenosdias: 1.4, encogimientos: 2.4,
-  militar: 1.1, pressmanc: .45, arnold: .4, pressmaqh: 1.2, landmine: .9, laterales: .25, latpolea: .25, latmaq: .9, frontales: .25, pajaros: .22, revpec: 1.3, facepull: .6, remoment: .9,
-  curlbarra: .8, curlz: .8, curlmanc: .35, martillo: .4, curlinc: .3, curlpredmaq: 1.0, curlpred: .7, curlconc: .3, curlpolea: .9, curlbayes: .55, curlarana: .3, curlmartpolea: 1.0,
+const STD = { banca: 1.75, bancainc: 1.5, bancadecl: 1.8, smithinc: 1.5, bancamanc: .65, inclmanc: .55, declmaq: 1.8, pressmaq: 1.75, aperturas: .6, apermanc: .4, cruces: .6, cruceslow: .5, contractor: 1.45, pullover: .5, svend: .25,
+  jalon: 1.5, jalonsup: 1.5, jalonuni: 0.7, jalonbrazos: .7, remobarra: 1.45, remopendlay: 1.4, remomanc: .75, remot: 1.55, remopecho: 1.4, remopolea: 1.55, remomaq: 1.6, pesomuerto: 2.6, rackpull: 3.0, hiperext: .8, buenosdias: 1.4, encogimientos: 2.4,
+  militar: 1.1, pressmanc: 0.5, arnold: .4, pressmaqh: 1.2, landmine: .9, laterales: 0.28, latpolea: 0.2, latmaq: 0.7, frontales: 0.28, pajaros: 0.25, revpec: 1.1, facepull: 0.75, remoment: .9,
+  curlbarra: 0.88, curlz: 0.88, curlmanc: 0.38, martillo: .4, curlinc: .3, curlpredmaq: 0.75, curlpred: 0.75, curlconc: .3, curlpolea: 0.88, curlbayes: 0.6, curlarana: .3, curlmartpolea: 0.88,
   curlinv: .6, curlmuneca: .6, curlmunecainv: .4, farmer: .8,
-  triceppolea: .9, tricuerda: .8, triuni: .35, fondosmaq: 1.6, trinuca: 1.0, trinucapolea: .8, frances: .75, cerrado: 1.5, jm: 1.1, patada: .2,
-  sentadilla: 2.4, frontal: 1.9, goblet: .9, smithsq: 2.3, hack: 2.8, pendulo: 2.8, beltsquat: 2.2, prensa: 4.5, extension: 1.4, bulgara: .6, zancadas: .6, zancadaspaseo: .6,
-  rumano: 2.2, rumanomanc: .9, pmpiernas: 2.4, femoral: 1.0, femtumbado: 1.0, femsentado: 1.2, kettleswing: .6,
-  hipthrust: 3.0, hipmaq: 2.6, hipuni: 1.2, patadapolea: .6, abductora: 1.8, aductora: 1.8, sumo: 2.8, sentsumo: 2.2, pullthrough: 1.0,
-  gemelos: 2.6, gemsentado: 1.8, gemprensa: 3.5, gemuni: 1.0, crunchpolea: 1.2 };
+  triceppolea: 1.0, tricuerda: 0.88, triuni: 0.45, fondosmaq: 1.6, trinuca: 0.9, trinucapolea: 0.9, frances: 0.8, cerrado: 1.5, jm: 1.1, patada: .2,
+  sentadilla: 2.4, frontal: 1.9, goblet: .9, smithsq: 2.3, hack: 2.6, pendulo: 2.6, beltsquat: 2.2, prensa: 4.1, extension: 1.45, bulgara: .6, zancadas: .6, zancadaspaseo: .6,
+  rumano: 2.05, rumanomanc: .9, pmpiernas: 2.2, femoral: 1.1, femtumbado: 1.1, femsentado: 1.2, kettleswing: .6,
+  hipthrust: 2.8, hipmaq: 2.5, hipuni: 1.2, patadapolea: .6, abductora: 1.8, aductora: 1.8, sumo: 2.8, sentsumo: 2.2, pullthrough: 1.0,
+  gemelos: 2.6, gemsentado: 1.85, gemprensa: 3.3, gemuni: 1.0, crunchpolea: 1.2 };
 /* Ejercicios de peso corporal: repeticiones para Magma y, si llevan lastre, 1RM total ÷ peso corporal */
 const STD_REPS = { dominadas: 20, chinups: 22, dominasist: 25, remoinv: 25, fondos: 30, flexiones: 50, flexdiam: 40, fondosbanco: 40, nordic: 12, sissy: 20, glutham: 20, puente: 40, stepup: 30, colgado: 120,
   plancha: 180, planchalat: 120, crunch: 40, bicicleta: 60, elevpiernas: 30, elevsuelo: 40, rueda: 25, pallof: 30, russian: 60, deadbug: 40, hollow: 90, lenador: 30, mountain: 80 };
@@ -865,6 +865,13 @@ function setScore(st, s, bw) {
   if (st.l) return e1rm(bw + (s.peso || 0), s.reps) / bw / st.l;
   return (s.reps || 0) / st.v;
 }
+/* Rango de un músculo: mezcla de sus mejores ejercicios para que uno solo "fácil" no lo dispare */
+function musScore(a) {
+  if (!a.length) return 0;
+  if (a.length === 1) return a[0] * .85;
+  if (a.length === 2) return .6 * a[0] + .4 * a[1];
+  return .5 * a[0] + .3 * a[1] + .2 * a[2];
+}
 function computeRanks() {
   const ex = {}, bw = bodyW() || 75;
   Object.entries(S.ix.hist).forEach(([id, h]) => {
@@ -873,7 +880,7 @@ function computeRanks() {
     if (best > 0) ex[id] = best;
   });
   const mus = {};
-  RK_GROUPS.forEach(g => { const a = Object.entries(ex).filter(([id]) => S.ix.ej[id].grupo === g).map(([, v]) => v).sort((x, y) => y - x); mus[g] = !a.length ? 0 : a.length > 1 ? .6 * a[0] + .4 * a[1] : a[0] * .85; });
+  RK_GROUPS.forEach(g => { const a = Object.entries(ex).filter(([id]) => S.ix.ej[id].grupo === g).map(([, v]) => v).sort((x, y) => y - x); mus[g] = musScore(a); });
   return { ex, mus, body: RK_GROUPS.reduce((s, g) => s + mus[g], 0) / RK_GROUPS.length };
 }
 function rankOf(s) {
@@ -890,7 +897,8 @@ function rkHint(g) {
   const list = Object.entries(S.rk.ex).filter(([id]) => S.ix.ej[id].grupo === g).sort((a, b) => b[1] - a[1]);
   if (!list.length) return 'Registra un ejercicio de este músculo para conseguir rango.';
   const target = RK_T[r.i + 1], [id] = list[0], s2 = list[1] ? list[1][1] : null;
-  const need = (s2 != null ? (target - .4 * s2) / .6 : target / .85) * sexF();
+  const s3 = list[2] ? list[2][1] : null;
+  const need = (s3 != null ? (target - .3 * s2 - .2 * s3) / .5 : s2 != null ? (target - .4 * s2) / .6 : target / .85) * sexF();
   const e = exObj(id), st = stdOf(e), bw = bodyW() || 75, nx = RANKS[r.i + 1][0];
   if (st.t === 'w') { const stp = stepOf(id); return `Para ${nx}: ${e.nombre} con ${kg(Math.max(stp, Math.ceil(need * st.v * bw / (1 + 8 / 30) / stp - 1e-9) * stp))} kg × 8`; }
   if (st.l) { const reps = Math.ceil(30 * (need * st.l - 1)); if (reps <= 15) return `Para ${nx}: ${e.nombre} × ${Math.max(1, reps)} sin lastre`; return `Para ${nx}: ${e.nombre} con ${kg(Math.ceil((need * st.l * bw / (1 + 8 / 30) - bw) / 1.25) * 1.25)} kg de lastre × 8`; }
@@ -939,7 +947,7 @@ function rkGuide() {
     <div class="sec-t" style="margin-top:16px">Cómo se calcula</div>
     <ul class="howto">
       <li><b>Cada ejercicio</b> tiene una marca de referencia. Tu puntuación es tu mejor 1RM estimado (peso × reps) dividido entre tu peso corporal y esa referencia. 100 puntos es nivel muy avanzado.</li>
-      <li><b>Cada músculo</b> combina sus dos mejores ejercicios (60 % el mejor y 40 % el segundo). Con un solo ejercicio cuenta un 85 %, así que te conviene hacer al menos dos por músculo.</li>
+      <li><b>Cada músculo</b> combina sus tres mejores ejercicios (50 %, 30 % y 20 %), para que un solo ejercicio fácil no te suba el rango. Con dos ejercicios cuenta 60 % y 40 %; con uno solo, un 85 %.</li><li><b>Las referencias están equilibradas</b> entre ejercicios del mismo músculo: el mismo esfuerzo en barra, mancuernas, máquina o polea da un rango parecido.</li>
       <li><b>El cuerpo completo</b> es la media de los ${RK_GROUPS.length} músculos: un músculo sin entrenar cuenta como 0 y te baja la media.</li>
       <li><b>Cuentan</b> máquinas, poleas, mancuernas, barra y peso corporal. Los calentamientos no cuentan. Si en tu perfil pones Mujer, las referencias se ajustan.</li>
     </ul>
@@ -988,7 +996,7 @@ function vRangos() {
       ${exs.map(([id, s]) => { const er = rankOf(s), nx = er.next ? rkReq(id, RK_T[er.i + 1]) : null; return `<div><span>${esc(exName(id))}${nx ? `<small class="mut" style="display:block">Para ${er.next}: ${nx.txt}</small>` : ''}</span><span style="color:${er.color};font-weight:700">${rkLabel(er)}</span></div>`; }).join('') || '<div class="mut">Aún no has registrado ejercicios de este músculo.</div>'}
       <div class="xs mut" style="margin:12px 0 4px;text-transform:uppercase;letter-spacing:.04em">Escalera de ${esc(g)}</div>
       ${rkLadder(g)}</div>` : ''}`; }).join('')}</div>
-  <p class="xs mut" style="margin:12px 2px">Cada ejercicio, de máquina o de peso libre, tiene su referencia: su rango sale de tu mejor 1RM estimado dividido por tu peso corporal. El rango de un músculo combina sus dos mejores ejercicios, y el del cuerpo completo es la media de los ${RK_GROUPS.length} músculos, así que para subirlo hay que entrenar todo el cuerpo. Los calentamientos no cuentan.</p>`;
+  <p class="xs mut" style="margin:12px 2px">Cada ejercicio, de máquina o de peso libre, tiene su referencia: su rango sale de tu mejor 1RM estimado dividido por tu peso corporal. El rango de un músculo combina sus tres mejores ejercicios, y el del cuerpo completo es la media de los ${RK_GROUPS.length} músculos, así que para subirlo hay que entrenar todo el cuerpo. Los calentamientos no cuentan.</p>`;
 }
 
 
